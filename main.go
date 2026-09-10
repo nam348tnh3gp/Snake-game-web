@@ -1,8 +1,3 @@
-// ══════════════════════════════════════════════════════
-// CHOCO HUB SNAKE - Go backend
-// Chỉ dùng standard library (không cần "go get" gì cả).
-// Lưu data vào 1 file JSON đơn giản (data.json).
-// ══════════════════════════════════════════════════════
 package main
 
 import (
@@ -16,18 +11,14 @@ import (
 	"sync"
 )
 
-// ── DATA MODEL ──
-
 type User struct {
-	// Tên hiển thị đúng như lúc đăng ký (giữ hoa/thường gốc)
 	DisplayName string `json:"display_name"`
 	Normal      int    `json:"normal"`
 	Hardcore    int    `json:"hardcore"`
 }
 
 type Store struct {
-	mu sync.Mutex
-	// key = username chính xác (PHÂN BIỆT hoa/thường: "Alice" và "alice" là 2 user khác nhau)
+	mu    sync.Mutex
 	Users map[string]*User `json:"users"`
 }
 
@@ -54,8 +45,6 @@ func loadStore() *Store {
 	return s
 }
 
-// save ghi file an toàn: ghi ra file tạm rồi rename, tránh mất data nếu
-// server bị tắt đột ngột giữa lúc ghi.
 func (s *Store) save() error {
 	b, err := json.MarshalIndent(struct {
 		Users map[string]*User `json:"users"`
@@ -70,8 +59,6 @@ func (s *Store) save() error {
 	return os.Rename(tmp, dataFile)
 }
 
-// ── HTTP RESPONSE HELPERS ──
-
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -82,16 +69,10 @@ func writeErr(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"status": "error", "message": msg})
 }
 
-// ── HANDLERS ──
-
 type registerReq struct {
 	Username string `json:"username"`
 }
 
-// POST /api/register
-// Đăng ký username mới. PHÂN BIỆT hoa/thường: "Alice" và "alice" là 2 tài
-// khoản khác nhau. Nếu trùng CHÍNH XÁC (kể cả hoa/thường) -> 409 để client
-// cho người dùng thử lại tên khác.
 func (s *Store) handleRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeErr(w, http.StatusMethodNotAllowed, "method_not_allowed")
@@ -126,12 +107,10 @@ func (s *Store) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 type submitScoreReq struct {
 	Username string `json:"username"`
-	Mode     string `json:"mode"` // "normal" | "hardcore"
+	Mode     string `json:"mode"`
 	Score    int    `json:"score"`
 }
 
-// POST /api/submit-score
-// Lưu điểm cao nhất (best score) cho user+mode. Chỉ cập nhật nếu điểm mới cao hơn.
 func (s *Store) handleSubmitScore(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeErr(w, http.StatusMethodNotAllowed, "method_not_allowed")
@@ -174,7 +153,7 @@ func (s *Store) handleSubmitScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"status":    "success",
+		"status":        "success",
 		"best_normal":   u.Normal,
 		"best_hardcore": u.Hardcore,
 	})
@@ -185,8 +164,6 @@ type lbEntry struct {
 	Score    int    `json:"score"`
 }
 
-// GET /api/leaderboard
-// Trả về 3 bảng: normal, hardcore, combined (tổng điểm 2 mode).
 func (s *Store) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeErr(w, http.StatusMethodNotAllowed, "method_not_allowed")
@@ -235,8 +212,6 @@ func main() {
 	mux.HandleFunc("/api/submit-score", store.handleSubmitScore)
 	mux.HandleFunc("/api/leaderboard", store.handleLeaderboard)
 
-	// Serve toàn bộ frontend tĩnh (snake.html, style.css, static/js/*, OSTS/*)
-	// từ thư mục ./public. "/" trỏ thẳng vào snake.html vì file không tên index.html.
 	fs := http.FileServer(http.Dir("./public"))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
