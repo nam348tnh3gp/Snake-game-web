@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Snake Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --radius-xl: 30px;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+            --radius-pill: 999px;
+
+            --accent-yellow: #FFD60A;
+            --accent-orange: #FF9F0A;
+            --accent-blue: #0A84FF;
+            --accent-pink: #FF375F;
+            --accent-green: #32D74B;
+            --accent-red: #FA5252;
+            --accent-cyan: #64D2FF;
+            --accent-gold: #F2C94C;
+
+            --ease-liquid: cubic-bezier(.22,1,.36,1);
+
+            /* Legacy vars used by game.js leaderboard */
+            --dim: var(--text-tertiary);
+            --mid: var(--text-secondary);
+            --amber: var(--accent-orange);
+        }
+
+        html[data-theme="dark"] {
+            --bg-base: #07060A;
+            --text-primary: #F1EAE0;
+            --text-secondary: #9A93A6;
+            --text-tertiary: #5F5A6D;
+
+            --glass-bg: rgba(255,255,255,0.055);
+            --glass-bg-strong: rgba(255,255,255,0.09);
+            --glass-border: rgba(255,255,255,0.14);
+            --glass-highlight: rgba(255,255,255,0.22);
+            --glass-shadow: rgba(0,0,0,0.55);
+
+            --field-bg: rgba(0,0,0,0.35);
+            --field-border: rgba(255,255,255,0.12);
+            --field-border-hi: rgba(255,159,10,0.35);
+
+            --blob-opacity: 0.2;
+            --blob-blur: 70px;
+        }
+
+        html[data-theme="light"] {
+            --bg-base: #EFEFF6;
+            --text-primary: #1B1A22;
+            --text-secondary: #5B5766;
+            --text-tertiary: #8B879A;
+
+            --glass-bg: rgba(255,255,255,0.5);
+            --glass-bg-strong: rgba(255,255,255,0.75);
+            --glass-border: rgba(255,255,255,0.9);
+            --glass-highlight: rgba(255,255,255,0.95);
+            --glass-shadow: rgba(31,32,71,0.14);
+
+            --field-bg: rgba(255,255,255,0.6);
+            --field-border: rgba(0,0,0,0.1);
+            --field-border-hi: rgba(255,159,10,0.5);
+
+            --blob-opacity: 0.7;
+            --blob-blur: 80px;
+
+            /* Legacy vars used by game.js leaderboard */
+            --dim: var(--text-tertiary);
+            --mid: var(--text-secondary);
+            --amber: var(--accent-orange);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+
+        body {
+            background: var(--bg-base);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background-color .6s var(--ease-liquid), color .5s var(--ease-liquid);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+        a { color: var(--accent-orange); text-decoration: none; }
+
+        /* ── Floating blobs ── */
+        .bg-blobs {
+            position: fixed; inset: 0; z-index: -2; overflow: hidden;
+            filter: blur(var(--blob-blur)) saturate(160%);
+            opacity: var(--blob-opacity);
+            transition: opacity .6s var(--ease-liquid);
+            pointer-events: none;
+        }
+        .blob { position: absolute; border-radius: 50%; will-change: transform; }
+        .blob-yellow {
+            width: 46vw; height: 46vw; top: -12%; left: -8%;
+            background: radial-gradient(circle at 40% 40%, var(--accent-yellow) 0%, transparent 72%);
+            animation: float1 24s var(--ease-liquid) infinite alternate;
+        }
+        .blob-blue {
+            width: 52vw; height: 52vw; bottom: -20%; right: -12%;
+            background: radial-gradient(circle at 60% 60%, var(--accent-blue) 0%, transparent 72%);
+            animation: float2 30s var(--ease-liquid) infinite alternate;
+        }
+        .blob-pink {
+            width: 38vw; height: 38vw; top: 22%; right: 10%;
+            background: radial-gradient(circle at 50% 50%, var(--accent-pink) 0%, transparent 72%);
+            animation: float3 20s var(--ease-liquid) infinite alternate;
+        }
+        .blob-orange {
+            width: 36vw; height: 36vw; bottom: 4%; left: 18%;
+            background: radial-gradient(circle at 50% 50%, var(--accent-orange) 0%, transparent 72%);
+            animation: float4 26s var(--ease-liquid) infinite alternate;
+        }
+        @keyframes float1 { 0%{transform:translate(0,0) scale(1) rotate(0deg);} 50%{transform:translate(6vw,8vh) scale(1.12) rotate(20deg);} 100%{transform:translate(-4vw,4vh) scale(0.95) rotate(-15deg);} }
+        @keyframes float2 { 0%{transform:translate(0,0) scale(1);} 50%{transform:translate(-7vw,-6vh) scale(1.1);} 100%{transform:translate(3vw,-9vh) scale(0.92);} }
+        @keyframes float3 { 0%{transform:translate(0,0) scale(1);} 50%{transform:translate(-5vw,7vh) scale(0.9);} 100%{transform:translate(6vw,3vh) scale(1.15);} }
+        @keyframes float4 { 0%{transform:translate(0,0) scale(1);} 50%{transform:translate(5vw,-5vh) scale(1.08);} 100%{transform:translate(-6vw,-2vh) scale(0.94);} }
+
+        .grain {
+            position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.035;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+        }
+
+        /* ── Glass primitive ── */
+        .glass {
+            position: relative;
+            background: var(--glass-bg);
+            backdrop-filter: blur(26px) saturate(180%);
+            -webkit-backdrop-filter: blur(26px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 10px 34px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+            transition: background-color .5s var(--ease-liquid), border-color .5s var(--ease-liquid), box-shadow .5s var(--ease-liquid);
+            overflow: hidden;
+        }
+        .glass::before {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(130deg, rgba(255,255,255,0.22), transparent 45%);
+            pointer-events: none; opacity: 0.7;
+        }
+        .glass-pill { border-radius: var(--radius-pill) !important; }
+
+        /* ── App shell ── */
+        .app-shell { max-width: 500px; margin: 0 auto; position: relative; z-index: 1; padding: 0.8rem 1rem 2rem; }
+
+        .topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 14px; padding: 10px 18px; margin-bottom: 0.8rem;
+        }
+        .topbar-widgets { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+
+        .theme-toggle { appearance: none; border: none; background: none; cursor: pointer; padding: 0; }
+        .toggle-track {
+            width: 56px; height: 30px; border-radius: var(--radius-pill);
+            background: linear-gradient(135deg, #2b2540, #171425);
+            border: 1px solid var(--glass-border);
+            display: flex; align-items: center; padding: 3px;
+            transition: background .45s var(--ease-liquid);
+            position: relative; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+        }
+        html[data-theme="light"] .toggle-track { background: linear-gradient(135deg, #FFE28A, #FFB347); }
+        .toggle-thumb {
+            width: 24px; height: 24px; border-radius: 50%; background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            display: flex; align-items: center; justify-content: center;
+            transform: translateX(0); transition: transform .45s var(--ease-liquid);
+        }
+        html[data-theme="light"] .toggle-thumb { transform: translateX(26px); }
+        .toggle-thumb svg { width: 14px; height: 14px; }
+
+        /* ── Game panel ── */
+        .game-panel { padding: 1.2rem; margin-bottom: 1rem; }
+        .game-panel > * { position: relative; z-index: 1; }
+
+        .setup-screen { text-align: center; }
+        .game-title {
+            font-weight: 800; font-size: clamp(1.3rem, 5vw, 1.8rem);
+            margin-bottom: 0.2rem;
+            background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange) 45%, var(--accent-pink));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .game-sub { color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.82rem; line-height: 1.6; }
+
+        /* ── Hardcore toggle ── */
+        .hc-wrap {
+            background: rgba(255,55,95,.04); border: 1px solid rgba(255,55,95,.12);
+            border-radius: var(--radius-md); padding: 15px; margin-bottom: 12px; cursor: pointer; transition: 0.3s;
+        }
+        .hc-wrap.hc-on {
+            background: rgba(255,55,95,.09); border-color: rgba(255,55,95,.32);
+        }
+        .hc-row { display: flex; align-items: center; justify-content: space-between; }
+        .hc-label { font-weight: 700; font-size: .8rem; color: var(--text-primary); }
+
+        .sw {
+            width: 44px; height: 22px; background: rgba(255,255,255,.08);
+            border-radius: 11px; position: relative; transition: 0.3s;
+        }
+        .sw.on { background: var(--accent-pink); }
+        .sw::after {
+            content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+            background: #fff; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,.4);
+        }
+        .sw.on::after { transform: translateX(22px); }
+
+        .hc-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; justify-content: center; }
+        .hc-badge {
+            font-size: .6rem; font-family: 'DM Mono', monospace; color: var(--accent-pink);
+            background: rgba(255,55,95,.1); border: 1px solid rgba(255,55,95,.2);
+            border-radius: 5px; padding: 3px 8px;
+        }
+
+        #epilepsy-warning {
+            background: rgba(250,82,82,.08); border: 1px solid rgba(250,82,82,.22);
+            border-radius: 8px; padding: 10px; font-size: .7rem; color: var(--accent-red);
+            margin-bottom: 15px; display: none; line-height: 1.4;
+        }
+
+        /* ── Fields ── */
+        .field-group { margin-bottom: 15px; text-align: left; }
+        .field-lbl {
+            font-family: 'DM Mono', monospace; font-size: .65rem; color: var(--text-tertiary);
+            letter-spacing: 1px; text-transform: uppercase; margin-bottom: 7px;
+        }
+        .field-inp {
+            width: 100%; padding: 16px 20px; background: var(--field-bg);
+            border: 1px solid var(--field-border); border-radius: var(--radius-md);
+            color: var(--accent-orange); font-family: 'DM Mono'; font-size: 1.05rem;
+            outline: none; transition: 0.2s;
+        }
+        .field-inp:focus { border-color: var(--field-border-hi); }
+        .field-err { min-height: 18px; margin-top: 6px; font-size: .75rem; color: var(--accent-red); text-align: left; }
+
+        /* ── Start button ── */
+        .btn-start {
+            width: 100%; background: var(--accent-yellow); color: #000; border-radius: var(--radius-md);
+            padding: 18px; font-weight: 800; font-size: 1rem; letter-spacing: 1px;
+            box-shadow: 0 4px 22px rgba(255,214,10,.3); transition: 0.2s; margin-top: 15px;
+        }
+        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,214,10,.4); }
+
+        /* ── Leaderboard ── */
+        .lb-container { margin: 0 auto 60px; width: 100%; }
+        .lb-container > * { position: relative; z-index: 1; }
+        .lb-container { padding: 0; }
+        .lb-header { display: flex; border-bottom: 1px solid var(--glass-border); }
+        .lb-tab {
+            flex: 1; padding: 14px; background: none; border: none;
+            color: var(--text-tertiary); cursor: pointer; font-family: 'DM Mono', monospace;
+            font-weight: bold; transition: 0.3s; font-size: 0.75rem; letter-spacing: 0.05em;
+        }
+        .lb-tab.active-n { color: var(--accent-yellow); border-bottom: 2px solid var(--accent-yellow); }
+        .lb-tab.active-h { color: var(--accent-pink); border-bottom: 2px solid var(--accent-pink); }
+        .lb-list { padding: 15px; }
+        .lb-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .lb-row:last-child { border-bottom: none; }
+        .lb-user { font-family: 'Outfit', sans-serif; font-weight: 600; color: var(--text-primary); }
+        .lb-score { color: var(--accent-orange); font-family: 'Press Start 2P', monospace; font-size: 0.7rem; }
+        .lb-empty {
+            display: flex; align-items: center; justify-content: center;
+            padding: 25px; font-size: .8rem; color: var(--text-tertiary);
+        }
+
+        /* ── Game screen ── */
+        #game-screen { display: none; }
+        .hud { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 12px; position: relative; }
+        .hud-cell {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm); padding: 10px; text-align: center;
+        }
+        .hud-lbl { font-family: 'DM Mono'; font-size: .55rem; color: var(--text-tertiary); letter-spacing: 1px; margin-bottom: 4px; }
+        .hud-val { font-family: 'DM Mono'; font-weight: 700; font-size: 1.15rem; color: var(--accent-orange); }
+        .hud-val.pop { animation: hudPop .25s cubic-bezier(.34, 1.6, .64, 1); }
+
+        .combo-disp {
+            position: absolute; top: -25px; right: 0;
+            font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--accent-gold);
+            opacity: 0; transform: translateY(5px); transition: 0.2s; pointer-events: none;
+        }
+        .combo-disp.visible { opacity: 1; transform: translateY(0); }
+
+        .cvs-wrap {
+            position: relative; width: 100%; border-radius: var(--radius-sm); overflow: hidden;
+            border: 2px solid var(--field-border-hi); transition: filter 0.1s, transform 0.1s;
+            background: #000;
+        }
+        #snakeCanvas {
+            display: block; width: 100%; aspect-ratio: 1; image-rendering: pixelated;
+        }
+        .cvs-wrap::after {
+            content: ''; position: absolute; inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+            pointer-events: none; z-index: 1;
+        }
+
+        .pu-banner {
+            position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+            font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--accent-gold);
+            background: rgba(0,0,0,0.9); padding: 8px 15px;
+            border: 1px solid var(--accent-gold); border-radius: 6px;
+            opacity: 0; transition: 0.3s; z-index: 10; white-space: nowrap;
+        }
+        .pu-banner.show { opacity: 1; }
+
+        .spd-bar-bg { margin-top: 8px; height: 5px; background: var(--glass-border); border-radius: 3px; overflow: hidden; }
+        .spd-bar { height: 100%; background: linear-gradient(90deg, var(--accent-green), var(--accent-orange), var(--accent-red)); width: 4%; transition: width 0.6s ease; }
+
+        /* ── D-Pad ── */
+        .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px auto; max-width: 180px; }
+        .dpad-btn {
+            aspect-ratio: 1; background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm); color: var(--accent-orange); font-size: 1.6rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.1s; touch-action: none; user-select: none;
+        }
+        .dpad-btn:active { background: var(--accent-orange); color: #000; transform: scale(0.9); }
+
+        .gbtn-row { display: flex; gap: 10px; margin-top: 15px; }
+        .gbtn {
+            flex: 1; background: var(--glass-bg); color: var(--text-secondary);
+            padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border);
+            font-weight: 600; font-size: 0.8rem;
+        }
+        .gbtn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+
+        /* ── Modal / Overlay ── */
+        .overlay {
+            position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            display: none; align-items: center; justify-content: center;
+            padding: 20px; opacity: 0; transition: 0.3s;
+        }
+        .overlay.show { display: flex !important; opacity: 1; }
+
+        .modal {
+            background: var(--glass-bg-strong); border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg); padding: 25px; width: 100%; max-width: 380px;
+            text-align: center; transform: scale(0.85);
+            transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            backdrop-filter: blur(26px) saturate(180%);
+            -webkit-backdrop-filter: blur(26px) saturate(180%);
+            box-shadow: 0 10px 34px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+        }
+        .overlay.show .modal { transform: scale(1); }
+
+        .modal-em { font-size: 3.5rem; margin-bottom: 10px; }
+        .modal-ttl { font-weight: 800; font-size: 1.4rem; margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange) 45%, var(--accent-pink));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+
+        .modal-stats {
+            background: var(--field-bg); border-radius: var(--radius-md);
+            margin: 20px 0; border: 1px solid var(--glass-border); overflow: hidden;
+        }
+        .modal-stat {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 20px; border-bottom: 1px solid var(--glass-border);
+        }
+        .modal-stat:last-child { border-bottom: none; }
+        .ms-lbl { color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; }
+        .ms-val { font-family: 'DM Mono'; font-weight: 700; color: var(--accent-orange); font-size: 1rem; }
+
+        .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .mbtn {
+            flex: 1; padding: 16px; border-radius: var(--radius-md); font-weight: 700;
+            font-size: .9rem; transition: 0.2s;
+        }
+        .mbtn-retry { background: var(--glass-bg); color: var(--text-primary); border: 1px solid var(--glass-border); }
+        .mbtn-exit { background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--glass-border); }
+        .mbtn:active { transform: scale(0.96); }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--glass-bg-strong); backdrop-filter: blur(20px);
+            padding: 14px 28px; border-radius: var(--radius-pill);
+            border: 1px solid var(--accent-orange); color: var(--text-primary); font-weight: 600;
+            font-size: 0.9rem; opacity: 0; transition: 0.3s; z-index: 10005;
+            pointer-events: none;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #toast.success { border-color: var(--accent-green); color: var(--accent-green); }
+        #toast.error { border-color: var(--accent-red); color: var(--accent-red); }
+
+        .particle {
+            position: absolute; border-radius: 50%; pointer-events: none; z-index: 50;
+            animation: pBurst 0.6s ease-out forwards;
+        }
+        @keyframes pBurst {
+            0% { transform: translate(0,0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx),var(--ty)) scale(0); opacity: 0; }
+        }
+        @keyframes hudPop { from { transform: scale(1.3); } to { transform: scale(1); } }
+
+        .hc-element { pointer-events: none; position: absolute; z-index: 10001; }
+        .hc-warning {
+            font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--accent-orange);
+            background: rgba(0,0,0,0.95); padding: 15px 25px; border: 2px solid var(--accent-orange);
+            border-radius: 10px; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            white-space: nowrap; z-index: 10005; box-shadow: 0 0 30px rgba(255,159,0,0.4);
+        }
+
+        .touch-hint {
+            display: none; text-align: center; padding: 10px;
+            font-family: 'DM Mono', monospace; font-size: 0.65rem;
+            color: var(--text-tertiary); letter-spacing: 1px;
+        }
+        .touch-active .dpad-desktop { display: none !important; }
+        .touch-active .touch-hint { display: block; }
+        .touch-active .cvs-wrap { border-color: var(--accent-orange); cursor: grab; }
+
+        /* ── Ad sidebar ── */
+        .ad-sidebar {
+            position: fixed; top: 50%; right: 8px; transform: translateY(-50%);
+            z-index: 9998; width: 150px; text-align: center; font-size: 0;
+        }
+        .ad-sidebar input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
+        .ad-sidebar .ad-inner { width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .ad-sidebar .close-btn {
+            position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%);
+            background: rgba(248,248,249,0.7); border-radius: 4px; padding: 4px;
+            cursor: pointer; z-index: 99999; line-height: 0;
+        }
+        .ad-sidebar .close-btn svg { display: block; width: 16px; height: 16px; fill: #000; }
+        #aadsstickymqfltshv:checked ~ .ad-inner,
+        #aadsstickymqfltshv:checked ~ .close-btn { display: none; }
+        .ad-frame-link {
+            display: inline-block; font-size: 13px; color: #263238;
+            padding: 4px 10px; background: #F8F8F9; text-decoration: none;
+            border-radius: 4px 4px 0 0;
+        }
+        .ad-iframe { border: 0; padding: 0; width: 100%; height: 200px; overflow: hidden; margin: 0 auto; }
+        @media (max-width: 768px) { .ad-sidebar { display: none; } }
+
+        @media (max-width: 600px) {
+            .game-panel { padding: 1rem; }
+            .game-title { font-size: 1.3rem; }
+            .dpad-btn { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BEGIN AADS AD UNIT 2444206 -->
+    <div class="ad-sidebar">
+        <input autocomplete="off" type="checkbox" id="aadsstickymqfltshv" hidden />
+        <div class="ad-inner">
+            <div style="width:100%;text-align:center;">
+                <a class="ad-frame-link"
+                   target="_blank"
+                   href="https://aads.com/campaigns/new?source_id=2444206&source_type=ad_unit&partner=2444206">
+                    Advertise here
+                </a>
+            </div>
+            <iframe class="ad-iframe"
+                    data-aa="2444206"
+                    src="//acceptable.a-ads.com/2444206/?size=Adaptive">
+            </iframe>
+        </div>
+        <label for="aadsstickymqfltshv" class="close-btn" title="Fechar anúncio">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 490 490">
+                <polygon points="456.851,0 245,212.564 33.149,0 0.708,32.337 212.669,245.004 0.708,457.678 33.149,490 245,277.443 456.851,490 489.292,457.678 277.331,245.004 489.292,32.337"/>
+            </svg>
+        </label>
+    </div>
+    <!-- END AADS AD UNIT 2444206 -->
+
+    <!-- Background blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-yellow"></div>
+        <div class="blob blob-blue"></div>
+        <div class="blob blob-pink"></div>
+        <div class="blob blob-orange"></div>
+    </div>
+    <div class="grain"></div>
+
+    <div class="app-shell">
+        <!-- Topbar -->
+        <div class="topbar glass glass-pill">
+            <div class="topbar-widgets">
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                    <div class="toggle-track">
+                        <div class="toggle-thumb">
+                            <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="#FFD60A" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                            <svg id="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="#FF9F0A" stroke-width="2" style="display:none">
+                                <circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Panel -->
+        <div class="game-panel glass">
+            <div class="setup-screen" id="setup-screen">
+                <div class="game-title">Snake</div>
+                <p class="game-sub">Nhập username để chơi và lên bảng xếp hạng.</p>
+
+                <div class="hc-wrap" id="hc-wrap" onclick="toggleHardcoreMode()">
+                    <div class="hc-row">
+                        <div class="hc-label">HARDCORE CHAOS MODE</div>
+                        <div class="sw" id="hardcore-switch"></div>
+                    </div>
+                    <div class="hc-badges" id="hc-badges" style="display:none">
+                        <span class="hc-badge">VISUAL CHAOS</span>
+                    </div>
+                </div>
+
+                <div id="epilepsy-warning">
+                    EPILEPSY WARNING: Rapid flashing and intense visual chaos.
+                </div>
+
+                <div class="field-group">
+                    <div class="field-lbl">Username</div>
+                    <input type="text" id="player-user" class="field-inp" placeholder="your_username" autocomplete="off" maxlength="20">
+                    <div class="field-err" id="username-err"></div>
+                </div>
+
+                <button class="btn-start" id="start-game-btn" onclick="checkUser()">▶ START GAME</button>
+            </div>
+
+            <div id="game-screen">
+                <div class="hud">
+                    <div class="hud-cell">
+                        <div class="hud-lbl">APPLES</div>
+                        <div class="hud-val" id="score-val">0</div>
+                    </div>
+                    <div class="hud-cell">
+                        <div class="hud-lbl">BEST</div>
+                        <div class="hud-val" id="best-val">0</div>
+                    </div>
+                    <div class="combo-disp" id="combo-disp"></div>
+                </div>
+
+                <div class="cvs-wrap" id="canvas-wrap">
+                    <canvas id="snakeCanvas" width="300" height="300"></canvas>
+                    <div class="pu-banner" id="pu-banner"></div>
+                </div>
+
+                <div class="spd-bar-bg">
+                    <div class="spd-bar" id="spd-bar"></div>
+                </div>
+
+                <div class="dpad dpad-desktop">
+                    <div></div>
+                    <button class="dpad-btn" onpointerdown="dpadHit('UP',event)">▲</button>
+                    <div></div>
+                    <button class="dpad-btn" onpointerdown="dpadHit('LEFT',event)">◀</button>
+                    <div></div>
+                    <button class="dpad-btn" onpointerdown="dpadHit('RIGHT',event)">▶</button>
+                    <div></div>
+                    <button class="dpad-btn" onpointerdown="dpadHit('DOWN',event)">▼</button>
+                    <div></div>
+                </div>
+
+                <div class="touch-hint" id="touch-hint">
+                    <span>SWIPE ON THE GAME TO CONTROL</span>
+                </div>
+
+                <div class="gbtn-row">
+                    <button class="gbtn" id="pause-btn" onclick="togglePause()">⏸ PAUSE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="lb-container glass">
+            <div class="lb-header">
+                <button id="lb-tab-normal" class="lb-tab active-n" onclick="showLb('normal')">NORMAL</button>
+                <button id="lb-tab-hardcore" class="lb-tab" onclick="showLb('hardcore')">HARDCORE</button>
+                <button id="lb-tab-combined" class="lb-tab" onclick="showLb('combined')">TỔNG HỢP</button>
+            </div>
+            <div id="lb-body" class="lb-list">
+                <div class="lb-empty">Loading scores...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="overlay" id="modal">
+        <div class="modal">
+            <div class="modal-em" id="modal-em">💀</div>
+            <div class="modal-ttl">GAME OVER</div>
+
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <span class="ms-lbl">APPLES</span>
+                    <span class="ms-val" id="m-score">0</span>
+                </div>
+                <div class="modal-stat">
+                    <span class="ms-lbl">PLAYER</span>
+                    <span class="ms-val" id="m-user">—</span>
+                </div>
+            </div>
+
+            <div class="modal-btns">
+                <button class="mbtn mbtn-retry" onclick="restartGame()">↺ RETRY</button>
+                <button class="mbtn mbtn-exit" onclick="exitToDashboard()">EXIT TO DASHBOARD</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <!-- Audio -->
+    <audio id="normalMusic" src="OSTS/High_Score_Chase.mp3" loop></audio>
+    <audio id="hardcoreMusic" src="OSTS/High_Score_Overdrive_Hardcore.mp3"></audio>
+
+    <!-- Theme toggle script -->
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            document.getElementById('theme-icon-dark').style.display = isDark ? 'none' : 'block';
+            document.getElementById('theme-icon-light').style.display = isDark ? 'block' : 'none';
+            localStorage.setItem('snake-theme', isDark ? 'light' : 'dark');
+        }
+        (function() {
+            const saved = localStorage.getItem('snake-theme');
+            if (saved === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.getElementById('theme-icon-dark').style.display = 'none';
+                document.getElementById('theme-icon-light').style.display = 'block';
+            }
+        })();
+    </script>
+
+    <script src="static/js/hardcore.js" defer></script>
+    <script src="static/js/game.js" defer></script>
+</body>
+</html>
