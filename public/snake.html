@@ -191,7 +191,7 @@
             background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange) 45%, var(--accent-pink));
             -webkit-background-clip: text; background-clip: text; color: transparent;
         }
-        .game-sub { color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.82rem; line-height: 1.6; }
+        .game-title { font-weight: 800; margin-bottom: 1.1rem; }
 
         /* ── Hardcore toggle ── */
         .hc-wrap {
@@ -219,6 +219,28 @@
         .hc-badge {
             font-size: .6rem; font-family: 'DM Mono', monospace; color: var(--accent-pink);
             background: rgba(255,55,95,.1); border: 1px solid rgba(255,55,95,.2);
+            border-radius: 5px; padding: 3px 8px;
+        }
+
+        .opt-group-lbl {
+            font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text-tertiary);
+            letter-spacing: 1.2px; text-transform: uppercase; text-align: left;
+            margin-bottom: 8px;
+        }
+
+        /* ── Wall Wrap toggle ── */
+        .ww-wrap {
+            background: rgba(100,210,255,.05); border: 1px solid rgba(100,210,255,.15);
+            border-radius: var(--radius-md); padding: 15px; margin-bottom: 12px; cursor: pointer; transition: 0.3s;
+        }
+        .ww-wrap.ww-on {
+            background: rgba(100,210,255,.10); border-color: rgba(100,210,255,.35);
+        }
+        .sw.on.ww { background: var(--accent-cyan); }
+        .ww-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; justify-content: center; }
+        .ww-badge {
+            font-size: .6rem; font-family: 'DM Mono', monospace; color: var(--accent-cyan);
+            background: rgba(100,210,255,.1); border: 1px solid rgba(100,210,255,.2);
             border-radius: 5px; padding: 3px 8px;
         }
 
@@ -474,7 +496,7 @@
                     src="//acceptable.a-ads.com/2444206/?size=Adaptive">
             </iframe>
         </div>
-        <label for="aadsstickymqfltshv" class="close-btn" title="Fechar anúncio">
+        <label for="aadsstickymqfltshv" class="close-btn" title="Close ad">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 490 490">
                 <polygon points="456.851,0 245,212.564 33.149,0 0.708,32.337 212.669,245.004 0.708,457.678 33.149,490 245,277.443 456.851,490 489.292,457.678 277.331,245.004 489.292,32.337"/>
             </svg>
@@ -514,7 +536,8 @@
         <div class="game-panel glass">
             <div class="setup-screen" id="setup-screen">
                 <div class="game-title">Snake</div>
-                <p class="game-sub">Nhập username để chơi và lên bảng xếp hạng.</p>
+
+                <div class="opt-group-lbl">Game Options</div>
 
                 <div class="hc-wrap" id="hc-wrap" onclick="toggleHardcoreMode()">
                     <div class="hc-row">
@@ -523,6 +546,17 @@
                     </div>
                     <div class="hc-badges" id="hc-badges" style="display:none">
                         <span class="hc-badge">VISUAL CHAOS</span>
+                    </div>
+                </div>
+
+                <div class="ww-wrap" id="ww-wrap" onclick="toggleWallWrap()">
+                    <div class="hc-row">
+                        <div class="hc-label">WALL WRAP MODE</div>
+                        <div class="sw" id="wallwrap-switch"></div>
+                    </div>
+                    <div class="ww-badges" id="ww-badges" style="display:none">
+                        <span class="ww-badge">NO WALL DEATH</span>
+                        <span class="ww-badge">TELEPORT EDGES</span>
                     </div>
                 </div>
 
@@ -588,7 +622,7 @@
             <div class="lb-header">
                 <button id="lb-tab-normal" class="lb-tab active-n" onclick="showLb('normal')">NORMAL</button>
                 <button id="lb-tab-hardcore" class="lb-tab" onclick="showLb('hardcore')">HARDCORE</button>
-                <button id="lb-tab-combined" class="lb-tab" onclick="showLb('combined')">TỔNG HỢP</button>
+                <button id="lb-tab-combined" class="lb-tab" onclick="showLb('combined')">COMBINED</button>
             </div>
             <div id="lb-body" class="lb-list">
                 <div class="lb-empty">Loading scores...</div>
