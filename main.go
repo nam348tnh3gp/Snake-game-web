@@ -31,12 +31,12 @@ func loadStore() *Store {
 	b, err := os.ReadFile(dataFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			log.Printf("⚠️  Không đọc được %s: %v (bắt đầu với dữ liệu trống)", dataFile, err)
+			log.Printf("⚠️  Could not read %s: %v (starting with empty data)", dataFile, err)
 		}
 		return s
 	}
 	if err := json.Unmarshal(b, s); err != nil {
-		log.Printf("⚠️  %s bị lỗi định dạng: %v (bắt đầu với dữ liệu trống)", dataFile, err)
+		log.Printf("⚠️  %s is malformed: %v (starting with empty data)", dataFile, err)
 		return &Store{Users: map[string]*User{}}
 	}
 	if s.Users == nil {
@@ -85,7 +85,7 @@ func (s *Store) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(req.Username)
 	if !usernameRe.MatchString(name) {
-		writeErr(w, http.StatusBadRequest, "Username phải 2-20 ký tự, chỉ gồm chữ/số/gạch dưới")
+		writeErr(w, http.StatusBadRequest, "Username must be 2-20 characters (letters, digits, underscore only)")
 		return
 	}
 
@@ -93,7 +93,7 @@ func (s *Store) handleRegister(w http.ResponseWriter, r *http.Request) {
 	defer s.mu.Unlock()
 
 	if _, exists := s.Users[name]; exists {
-		writeErr(w, http.StatusConflict, "Username đã được sử dụng, hãy thử tên khác")
+		writeErr(w, http.StatusConflict, "Username already taken, please try another")
 		return
 	}
 	s.Users[name] = &User{DisplayName: name}
@@ -122,7 +122,7 @@ func (s *Store) handleSubmitScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Mode != "normal" && req.Mode != "hardcore" {
-		writeErr(w, http.StatusBadRequest, "mode phải là normal hoặc hardcore")
+		writeErr(w, http.StatusBadRequest, "mode must be 'normal' or 'hardcore'")
 		return
 	}
 	if req.Score < 0 {
@@ -135,7 +135,7 @@ func (s *Store) handleSubmitScore(w http.ResponseWriter, r *http.Request) {
 
 	u, exists := s.Users[key]
 	if !exists {
-		writeErr(w, http.StatusNotFound, "Username chưa đăng ký")
+		writeErr(w, http.StatusNotFound, "Username not registered")
 		return
 	}
 	if req.Mode == "normal" {
@@ -225,6 +225,6 @@ func main() {
 	if v := os.Getenv("PORT"); v != "" {
 		addr = ":" + v
 	}
-	log.Printf("🐍 Snake server đang chạy tại http://localhost%s", addr)
+	log.Printf("🐍 Snake server running at http://localhost%s", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
