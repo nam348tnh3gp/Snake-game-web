@@ -1,11 +1,11 @@
 // ══════════════════════════════════════════════════════
-// SNAKE ENGINE - CHOCO HUB (SYNCED v2)
+// SNAKE ENGINE (SYNCED v2)
 // ══════════════════════════════════════════════════════
 
 // ── CONFIG ──
 const BOX = 15;
 const COLS = 20;
-const API_BASE = ""; // đổi thành "http://host:port" nếu frontend/backend khác origin
+const API_BASE = ""; // change to "http://host:port" if frontend/backend are on different origins
 
 // ── STATE ──
 let canvas, ctx;
@@ -17,6 +17,7 @@ let goldFood = null;
 let direction = "";
 let nextDir = "";
 let hardcoreMode = false;
+let wallWrap = false;
 let paused = false;
 let dead = false;
 let lastEatTime = 0;
@@ -221,7 +222,14 @@ function tick() {
     if (direction === "DOWN")  hy += BOX;
 
     if (!window._isLagGhost) {
-        if (hx < 0 || hx >= 300 || hy < 0 || hy >= 300) return triggerGameOver();
+        if (hx < 0 || hx >= 300 || hy < 0 || hy >= 300) {
+            if (wallWrap) {
+                if (hx < 0) hx = 300 - BOX; else if (hx >= 300) hx = 0;
+                if (hy < 0) hy = 300 - BOX; else if (hy >= 300) hy = 0;
+            } else {
+                return triggerGameOver();
+            }
+        }
         if (snake.some(s => s.x === hx && s.y === hy)) return triggerGameOver();
     } else {
         if (hx < 0) hx = 300 - BOX; else if (hx >= 300) hx = 0;
@@ -286,20 +294,20 @@ async function checkUser() {
     const errBox  = document.getElementById("username-err");
     errBox.textContent = "";
 
-    if (!userInp || userInp.length < 2) return toast("❌ Nhập username hợp lệ!", "error");
+    if (!userInp || userInp.length < 2) return toast("❌ Enter a valid username!", "error");
 
     const savedUser = localStorage.getItem('choco_user');
     const btn = document.getElementById("start-game-btn");
 
-    // Nếu đúng username đã lưu trên máy này -> vào thẳng, khỏi cần đăng ký lại.
+    // If it matches the username already saved on this device -> skip straight in, no need to re-register.
     if (savedUser && savedUser === userInp) {
         enterGame(savedUser);
         return;
     }
 
-    // Username mới (hoặc đổi tên trên máy này) -> đăng ký với server.
+    // New username (or renamed on this device) -> register with the server.
     btn.disabled = true;
-    btn.textContent = "ĐANG KIỂM TRA…";
+    btn.textContent = "CHECKING…";
     try {
         const res = await fetch(API_BASE + '/api/register', {
             method: 'POST',
@@ -309,8 +317,8 @@ async function checkUser() {
         const data = await res.json();
 
         if (res.status === 409 || data.status !== 'success') {
-            // Trùng username hoặc không hợp lệ -> cho người dùng sửa và bấm lại (retry).
-            errBox.textContent = data.message || "Username đã được sử dụng, hãy thử tên khác";
+            // Duplicate or invalid username -> let the user edit and try again (retry).
+            errBox.textContent = data.message || "Username already taken, please try another";
             btn.disabled = false;
             btn.textContent = "▶ START GAME";
             return;
@@ -319,7 +327,7 @@ async function checkUser() {
         localStorage.setItem('choco_user', userInp);
         enterGame(userInp);
     } catch (e) {
-        toast("⚠️ Server offline hoặc lỗi mạng", "error");
+        toast("⚠️ Server offline or network error", "error");
         console.error(e);
         btn.disabled = false;
         btn.textContent = "▶ START GAME";
@@ -397,7 +405,7 @@ function triggerGameOver() {
     if (typeof _cleanHC === "function") _cleanHC();
 }
 
-// ── SUBMIT SCORE (tự động khi game over) ──
+// ── SUBMIT SCORE (automatic on game over) ──
 async function submitScore() {
     if (!window.currentUser) return;
     const mode = hardcoreMode ? 'hardcore' : 'normal';
@@ -407,7 +415,7 @@ async function submitScore() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: window.currentUser, mode, score })
         });
-        loadLb(); // cập nhật leaderboard mới nhất
+        loadLb(); // refresh the leaderboard with the latest data
     } catch (e) {
         console.log("Submit score failed (offline?)", e);
     }
@@ -430,12 +438,28 @@ function toggleHardcoreMode() {
     }
 }
 
+function toggleWallWrap() {
+    wallWrap = !wallWrap;
+
+    const wrap   = document.getElementById("ww-wrap");
+    const sw     = document.getElementById("wallwrap-switch");
+    const badges = document.getElementById("ww-badges");
+
+    if (wallWrap) {
+        wrap.classList.add("ww-on"); sw.classList.add("on", "ww");
+        badges.style.display = "flex";
+    } else {
+        wrap.classList.remove("ww-on"); sw.classList.remove("on", "ww");
+        badges.style.display = "none";
+    }
+}
+
 function restartGame() {
     document.getElementById("modal").classList.remove("show");
     startGame();
 }
 
-// 🏠 Thoát về Dashboard
+// 🏠 Exit to dashboard
 function exitToDashboard() {
     document.getElementById("modal").classList.remove("show");
     if (typeof _cleanHC === "function") _cleanHC();
