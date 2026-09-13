@@ -139,16 +139,18 @@ function draw() {
 
     ctx.strokeStyle = "rgba(255,149,0,0.06)";
     ctx.lineWidth = 0.5;
+    ctx.beginPath();
     for (let i = 0; i <= 300; i += BOX) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 300); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(300, i); ctx.stroke();
+        ctx.moveTo(i, 0); ctx.lineTo(i, 300);
+        ctx.moveTo(0, i); ctx.lineTo(300, i);
     }
+    ctx.stroke();
 
     const pulse = 0.85 + 0.15 * Math.sin(Date.now() / 200);
     ctx.save();
     ctx.fillStyle = "#ff2d78";
     ctx.shadowColor = "#ff2d78";
-    ctx.shadowBlur = 12 * pulse;
+    ctx.shadowBlur = 8 * pulse;
     ctx.beginPath();
     ctx.arc(food.x + BOX/2, food.y + BOX/2, 6 * pulse, 0, Math.PI*2);
     ctx.fill();
@@ -159,7 +161,7 @@ function draw() {
         ctx.save();
         ctx.fillStyle = "#ffd700";
         ctx.shadowColor = "#ffd700";
-        ctx.shadowBlur = 20 * gp;
+        ctx.shadowBlur = 12 * gp;
         ctx.beginPath();
         ctx.arc(goldFood.x + BOX/2, goldFood.y + BOX/2, 7 * gp, 0, Math.PI*2);
         ctx.fill();
@@ -174,14 +176,14 @@ function draw() {
         if (window._isLagGhost) {
             ctx.fillStyle = idx % 2 === 0 ? "rgba(0,225,255,0.8)" : "rgba(255,255,255,0.5)";
             ctx.shadowColor = "#00e1ff";
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = 8;
         } else if (isHead) {
             const g = ctx.createRadialGradient(seg.x+BOX/2, seg.y+BOX/2, 0, seg.x+BOX/2, seg.y+BOX/2, BOX);
             g.addColorStop(0, "#ffcc44");
             g.addColorStop(1, "#f58a00");
             ctx.fillStyle = g;
             ctx.shadowColor = "#f58a00";
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = 8;
         } else {
             ctx.fillStyle = `rgb(${Math.floor(210*(1-t*.7))}, ${Math.floor(72*(1-t*.7))}, 0)`;
         }
